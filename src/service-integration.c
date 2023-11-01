@@ -102,44 +102,68 @@ next_outcome request_get_next(void) {
             printf("CURL returned error code %d - %s\n", curl_code, curl_easy_strerror(curl_code));
             printf("Failed to get next invocation. No Response from endpoint\n");
         } else {
+            printf("1\n");
             printf("CURL response body: %s\n", http_response_get_content());
             ret.success = true;
+            printf("2\n");
             ret.request = malloc(sizeof(invocation_request));
+            printf("3\n");
             FAIL_IF(!ret.request)
+            printf("4\n");
             ret.request->payload = NULL;
+            printf("5\n");
             ret.request->request_id = NULL;
+            printf("6\n");
             ret.request->xray_trace_id = NULL;
+            printf("7\n");
             ret.request->client_context = NULL;
+            printf("8\n");
             ret.request->cognito_identity = NULL;
+            printf("9\n");
             ret.request->function_arn = NULL;
+            printf("10\n");
 
             long resp_code;
+            printf("11\n");
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &resp_code);
+            printf("12\n");
             ret.res_code = (int) resp_code;
+            printf("13\n");
 
             SAFE_STRDUP(ret.request->payload, http_response_get_content())
+            printf("14\n");
             if (has_header(REQUEST_ID_HEADER)) {
+                printf("15\n");
                 SAFE_STRDUP(ret.request->request_id, get_header(REQUEST_ID_HEADER))
+                printf("16\n");
                 printf("ret.request.request_id: %s\n", ret.request->request_id);
             }
 
             if (has_header(TRACE_ID_HEADER)) {
+                printf("17\n");
                 SAFE_STRDUP(ret.request->xray_trace_id, get_header(TRACE_ID_HEADER))
+                printf("18\n");
                 printf("ret.request.xray_trace_id: %s\n", ret.request->xray_trace_id);
             }
 
             if (has_header(CLIENT_CONTEXT_HEADER)) {
+                printf("19\n");
                 SAFE_STRDUP(ret.request->client_context, get_header(CLIENT_CONTEXT_HEADER))
+                printf("20\n");
                 printf("ret.request.client_context: %s\n", ret.request->client_context);
             }
 
             if (has_header(COGNITO_IDENTITY_HEADER)) {
+                printf("21\n");
                 SAFE_STRDUP(ret.request->cognito_identity, get_header(COGNITO_IDENTITY_HEADER))
+                printf("22\n");
                 printf("ret.request.cognito_identity: %s\n", ret.request->cognito_identity);
             }
 
             if (has_header(FUNCTION_ARN_HEADER)) {
+                printf("23\n");
                 SAFE_STRDUP(ret.request->function_arn, get_header(FUNCTION_ARN_HEADER))
+                printf("24\n");
                 printf("ret.request.function_arn: %s\n", ret.request->function_arn);
             }
 
@@ -157,87 +181,143 @@ next_outcome request_get_next(void) {
 //                        static_cast<int64_t>(req.get_time_remaining().count()));
 //            }
         }
+        printf("25\n");
         curl_easy_cleanup(curl);
+        printf("26\n");
     }
     return ret;
 }
 
 post_result_outcome request_post_result(invocation_request *request, invocation_response *response) {
+    printf("27\n");
     post_result_outcome ret;
+    printf("28\n");
     ret.success = false;
+    printf("29\n");
     ret.res_code = -1; // REQUEST_NOT_MADE
+    printf("30\n");
 
     http_response_clear();
+    printf("31\n");
     curl = curl_easy_init();
+    printf("32\n");
     if (curl) {
+        printf("33\n");
         // this ought to be enough space to accommodate request_id and the last url segment (including \0).
         char *request_url = malloc(strlen(result_endpoint) + 128);
+        printf("34\n");
         FAIL_IF(!request_url)
+        printf("35\n");
         strcpy(request_url, result_endpoint);
+        printf("36\n");
         strcat(request_url, request->request_id);
+        printf("37\n");
         strcat(request_url, (response->success) ? "/response" : "/error");
+        printf("38\n");
         printf("Making request to %s\n", request_url);
 
         set_curl_post_result_options();
+        printf("39\n");
         curl_easy_setopt(curl, CURLOPT_URL, request_url);
+        printf("40\n");
         struct curl_slist *headers = NULL;
+        printf("41\n");
 
         char *content_type_h = malloc(strlen(HTTP_HEADER_CONTENT_TYPE) + strlen(response->content_type) + 1);
+        printf("42\n");
         FAIL_IF(!content_type_h)
+        printf("43\n");
         strcpy(content_type_h, HTTP_HEADER_CONTENT_TYPE);
+        printf("44\n");
         strcat(content_type_h, response->content_type);
+        printf("45\n");
         printf("content_type_h -> %s\n", content_type_h);
 
+        printf("46\n");
         headers = curl_slist_append(headers, content_type_h);
+        printf("47\n");
         headers = curl_slist_append(headers, get_user_agent_header());
+        printf("48\n");
 
         printf("calculating content length... %lu bytes\n", strlen(response->payload));
         char *content_length_v = malloc(16); //Lambda payload in bytes -> 7 digits + 1 null char + future proof fat
+        printf("49\n");
         FAIL_IF(!content_length_v)
+        printf("50\n");
         sprintf(content_length_v, "%lu", strlen(response->payload));
+        printf("51\n");
 
         char *content_length_h = malloc(strlen(HTTP_HEADER_CONTENT_LENGTH) + strlen(content_length_v) + 1);
+        printf("52\n");
         FAIL_IF(!content_length_h)
+        printf("53\n");
         sprintf(content_length_h, "%s%s", HTTP_HEADER_CONTENT_LENGTH, content_length_v);
+        printf("54\n");
 
         headers = curl_slist_append(headers, content_length_h);
+        printf("55\n");
 
         curl_request_write_t req_write;
+        printf("56\n");
         req_write.readptr = response->payload;
+        printf("57\n");
         req_write.sizeleft = strlen(response->payload);
+        printf("58\n");
 
         curl_easy_setopt(curl, CURLOPT_READDATA, &req_write);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)req_write.sizeleft);
+        printf("59\n");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)req_write.sizeleft);
+        printf("60\n");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        printf("61\n");
         CURLcode curl_code = curl_easy_perform(curl);
+        printf("62\n");
         curl_slist_free_all(headers);
+        printf("63\n");
 
         if (curl_code != CURLE_OK) {
+            printf("64\n");
             printf("CURL returned error code %d - %s\n", curl_code, curl_easy_strerror(curl_code));
         } else {
+            printf("65\n");
             printf("CURL response body: %s\n", http_response_get_content());
 
             long http_response_code;
+            printf("66\n");
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_response_code);
+            printf("67\n");
             ret.res_code = (int) http_response_code;
+            printf("68\n");
             ret.success = (http_response_code >= 200 && http_response_code <= 299);
+            printf("69\n");
         }
 
+        printf("70\n");
         curl_easy_cleanup(curl);
+        printf("71\n");
+        printf("Cleaned UP\n");
         SAFE_FREE(request_url);
+        printf("72\n");
         SAFE_FREE(content_type_h);
+        printf("73\n");
         SAFE_FREE(content_length_h);
+        printf("74\n");
         SAFE_FREE(content_length_v);
+        printf("75\n");
     }
     return ret;
 }
 
 /* Utility functions */
 static inline char *build_url(char *b_url, char *path) {
+    printf("76\n");
     char *dest = malloc(strlen(b_url) + strlen(path) + 1);
+    printf("77\n");
     FAIL_IF(!dest)
+    printf("78\n");
     strcpy(dest, b_url);
+    printf("79\n");
     strcat(dest, path);
+    printf("80\n");
     return dest;
 }
-
