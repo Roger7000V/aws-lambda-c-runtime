@@ -53,14 +53,30 @@ const char *http_response_get_content(void) {
 }
 
 char *get_header(const char *header) {
+    printf("Entering get_header\n"); // 打印进入函数
+
     char *h_tmp = malloc(strlen(header) + 1);
-    FAIL_IF(!h_tmp)
+    if (!h_tmp) {
+        printf("Failed to allocate memory for h_tmp\n"); // 如果内存分配失败
+        return NULL;
+    }
     strcpy(h_tmp, header);
 
+    printf("h_tmp allocated and set to: %s\n", h_tmp); // 打印h_tmp值
+
     char *value = NULL;
-    assert(hashmap_get(header_map, h_tmp, (void **) &value) == MAP_OK);
+    int get_result = hashmap_get(header_map, h_tmp, (void **)&value);
+    if (get_result != MAP_OK) {
+        printf("hashmap_get failed with result: %d\n", get_result); // 打印hashmap_get失败信息
+        SAFE_FREE(h_tmp);
+        return NULL;
+    }
+
+    printf("hashmap_get succeeded, value: %s\n", value); // 打印获取到的header值
 
     SAFE_FREE(h_tmp);
+    printf("Exiting get_header\n"); // 打印函数退出
+
     return value;
 }
 
